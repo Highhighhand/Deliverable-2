@@ -1,0 +1,88 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+link="https://github.com/Highhighhand/Deliverable-1/raw/main/LifeExpect_birth.xlsx"
+library(rio)
+
+cia=import(link)
+```
+
+First of all, we insert the data into R studio. We choose the Life expect data. And we want to make a bar plot to visualize the distribution of people's life expectancy in different region. 
+
+```{r}
+library("dplyr")
+cia$new <-case_when(cia$value<60~"<60",
+                     cia$value>=60&cia$value<70~"60-70",
+                     cia$value>=70&cia$value<80~"70-80",
+                     cia$value>=80~">80")
+
+cia$new=factor(cia$new,levels = c("<60","60-70","70-80",">80"),ordered = TRUE)
+```
+We divide the life expectancy value into four column: "<60" under 60 years old, "60-70" between 60-70 years old, "70-80" between 70-80 years old, ">80" above 80 years old.
+
+```{r}
+(lifeexpe=table(cia$region,cia$new))
+```
+
+```{r}
+library(magrittr)
+(Per_lifeexpe=prop.table(lifeexpe,
+                            margin = 2) 
+                             %>%round(.,3))
+```
+```{r}
+(lifeDF=as.data.frame(lifeexpe))
+```
+```{r}
+as.data.frame(Per_lifeexpe)
+```
+```{r}
+lifeDF$share=as.data.frame(Per_lifeexpe)[,3]
+lifeDF
+```
+```{r}
+names(lifeDF)[1:3]=c("region","level","counts")
+
+lifeDF
+```
+```{r}
+library(ggplot2)
+baseBar = ggplot(lifeDF, aes(x = reorder(region,share), y = share)) + theme_minimal()
+
+barPlot  = baseBar + geom_bar( stat = "identity" ) 
+
+barPlot
+```
+We create the bar plot and reorder the region by the share of life expectancy.
+```{r}
+barsFt = barPlot + facet_grid(~level) 
+barsFt=barsFt + coord_flip()
+barsFt
+```
+Then we flip over the bar plot in order to clearly show the results.
+```{r}
+barsFt=barsFt + theme(axis.text.y = element_text(size=7,angle = 20))+labs(y="Life Expectancy")+labs(x="Region")
+barsFt
+```
+We adjust the format and label the name of x and y.
+```{r}
+library(scales)
+barsFt + geom_text(aes(label=ifelse(share>0.01,
+                                      percent(share,accuracy = 1),
+                                     "")),
+                     nudge_y = 0.11,size=2.7) + 
+           scale_y_continuous(labels = percent_format(accuracy = 1,suffix="")) 
+```
+We add the share of life expectancy in different region and annotate the share with percentage mark. When the share = 0, it doesn't show in the bar plot.
+
+
+
